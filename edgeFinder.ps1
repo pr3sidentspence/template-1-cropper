@@ -1,4 +1,9 @@
-
+#This script needs cleaning up.
+#It takes images of cards scanned using the template frame
+#we scanned the Berman Postcard Collection with and straightens
+#them and crops them with about 50px of background showing on each side.
+#There may be some leftover comments from script this was based on.
+#Not sure all command line switches will work with this.
 param (
     [string]$extension = "jpg",
     [float]$threshold = 0.1,
@@ -36,14 +41,10 @@ if ($nodelete) {
 function rotator {
     $rotation = & magick temp1\$_ -background $colour -deskew 20% -print %[deskew:angle]\n null:
     Write-Host $rotation
-    #Write-Host magick $_ -rotate $rotation temp2\$_
     & magick temp1\$_ -background "$colour" -rotate $rotation temp1\$_
     & magick $_ -background "$colour" -rotate $rotation temp2\$_
 }
 function cropper {
-    # temp1late-1 top card (ID nums with remainder 2 when divided by 3) top left crop for 50px padding 47,61
-    # temp1late-1 middle card (ID nums with remainder 1 when divided by 3) top left 26,104
-    # temp1late-1 bottom card (ID nums with remainder 0 when divided by 3) top left 40,110
     $fileName = $gapInfo[0]
     Write-Host cropper thinks it`'s got a $gapInfo[1]
     if ($gapInfo[1] -match 'cols') {
@@ -54,18 +55,7 @@ function cropper {
     }
     $gapPC1 = ([math]::Round((100 * $gapInfo[2] / $lineCounter), 2) - $padCorrect)
     $gapPC2 = ([math]::Round((100 * $gapInfo[4] / $lineCounter), 2) - $padCorrect)
-    # Write-Host **********
-    # Write-Host small $gapInfo[0] \t gap 1 is $gapInfo[1] lines long
-    # Write-Host small $gapInfo[0] \t gap 1 is $gapPC1% of image long
-    # Write-Host b i g $gapInfo[0] \t gap 1 is about (3600 * $gapInfo[1] / $lineCounter) lines long
-    # Write-Host small $gapInfo[0] \t gap 2 is $gapInfo[3] lines long
-    # Write-Host small $gapInfo[0] \t gap 2 is $gapPC2% of image long
-    # Write-Host b i g $gapInfo[0] \t gap 2 is about (3600 * $gapInfo[3] / $lineCounter) lines long
-    # Write-Host **********
     Write-Host The arraylist has $gapInfo.Count values.
-    # The arraylist has one entry for the filename, and two for each gap, there is always 1 more
-    # gap than there are cards. So starting with arraylist.Count (e.g. 9) take 1 off for the name (8)
-    # and 2 off for the extra gap info (6), divide by two to get number of cards. 
     $numCards = ($gapInfo.Count - 4) / 2
     Write-Host That means the scan should have $numCards cards
     if ($numCards -le 1) {
@@ -76,14 +66,10 @@ function cropper {
             else {
                 [string]$bigFinale = ('temp3\{0}.jpg -chop 0x{1}% -gravity south -chop 0x{2}% output\{0}.jpg' -f $gapInfo[0], $gapPC1, $gapPC2)
             }
-            cmd.exe /c "magick.exe $bigFinale" 
-            if (!$nodelete) {
-                #Remove-Item $PSScriptRoot\temp1\$fileName.txt
-            }
-            else {
-                Write-Host Found more than one card, skipping. #for now, later try different standard deviations?
-            }
         }
+    }
+    else {
+        Write-Host Found more than one card, skipping. #for now, later try different standard deviations?
     }
 }
 function colDev {
@@ -149,8 +135,9 @@ function findGaps {
 if (!$nosource) {
     colDev
 }
-#findGaps
 
 if (!$nodelete) {
     Remove-Item -path $PSScriptRoot\temp1 -recurse
+    Remove-Item -path $PSScriptRoot\temp2 -recurse
+    Remove-Item -path $PSScriptRoot\temp3 -recurse
 }
